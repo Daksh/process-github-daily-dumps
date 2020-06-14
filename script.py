@@ -10,7 +10,6 @@ with open("urls.txt") as f:
     for l in f:
         url = l.strip()
         urls.append(url)
-exit()
 
 client = MongoClient()
 
