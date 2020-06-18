@@ -2,8 +2,6 @@ from pymongo import MongoClient
 from time import time
 import csv, os
 
-# dirs = ['2019-06-11','2019-06-10','2019-06-09','2019-06-08','2019-06-07','2019-06-05']
-# dirs = ['2019-06-04']
 urls = []
 
 with open("urls.txt") as f:
@@ -13,8 +11,11 @@ with open("urls.txt") as f:
 
 client = MongoClient()
 
-
 for url in urls:
+    date = url[url.index('mongo-dump')+11:url.index('.tar.gz')]
+    if os.path.isfile(date+'.csv'):
+        print("Skipping URL ("+url+") as",date+'.csv',"file exists")
+        continue
     cmd = 'axel -n 16 '+url
     print("Starting download:",cmd)
     if os.system(cmd)!=0: exit()
