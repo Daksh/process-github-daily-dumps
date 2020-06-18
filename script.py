@@ -21,7 +21,7 @@ for url in urls:
     if os.path.isfile('people_'+date+'.csv'):
         print("Skipping URL ("+url+") as",'people_'+date+'.csv',"file exists")
         continue
-    cmd = 'axel -n 16 '+url
+    cmd = 'axel -q -n 16 '+url
     print("Starting download:",cmd)
     if os.system(cmd)!=0: exit()
 
