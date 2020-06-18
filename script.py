@@ -18,8 +18,8 @@ client = MongoClient()
 
 for url in urls:
     date = url[url.index('mongo-dump')+11:url.index('.tar.gz')]
-    if os.path.isfile(date+'.csv'):
-        print("Skipping URL ("+url+") as",date+'.csv',"file exists")
+    if os.path.isfile('people_'+date+'.csv'):
+        print("Skipping URL ("+url+") as",'people_'+date+'.csv',"file exists")
         continue
     cmd = 'axel -n 16 '+url
     print("Starting download:",cmd)
