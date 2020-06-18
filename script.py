@@ -9,6 +9,11 @@ with open("urls.txt") as f:
         url = l.strip()
         urls.append(url)
 
+# Create the output directory if it does not exist
+if not os.path.exists('output'):
+    os.mkdir('output')
+os.chdir('output')
+
 client = MongoClient()
 
 for url in urls:
