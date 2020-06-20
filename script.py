@@ -1,6 +1,31 @@
 from pymongo import MongoClient
 from time import time
-import csv, os
+import csv, os, logging
+
+def cleanup(tarName):
+    logging.info("[cleanup] Removing the data from MongoDB")
+    client.drop_database('test') # Remove the DB from Mongo
+
+    logging.info("[cleanup] Checking for file:",tarName)
+    if os.path.isfile(tarName):
+        cmd = 'rm '+tarName
+        logging.info("[cleanup] Removing tar file:",cmd)
+        if os.system(cmd)!=0:
+            logging.critical("[cleanup] Error when removing tar file")
+
+logging.basicConfig(
+    filename='script.log',
+    filemode='w', #can do 'a' for append
+    level=logging.DEBUG,
+    format="%(asctime)s | %(levelname)s : %(message)s",
+    datefmt="%d-%m-%Y %H:%M:%S ",
+)
+
+logging.debug("debug message")
+logging.info("info message")
+logging.warning("warn message")
+logging.error("error message")
+logging.critical("critical message")
 
 urls = []
 
@@ -18,33 +43,41 @@ client = MongoClient()
 
 for url in urls:
     date = url[url.index('mongo-dump')+11:url.index('.tar.gz')]
+    tarName = url[url.index('mongo-dump'):url.index('.gz')+3]
+
     if os.path.isfile('people_'+date+'.csv'):
-        print("Skipping URL ("+url+") as",'people_'+date+'.csv',"file exists")
+        logging.warning("Skipping URL ("+url+") as",'people_'+date+'.csv',"file exists")
         continue
     cmd = 'axel -q -n 16 '+url
-    print("Starting download:",cmd)
-    if os.system(cmd)!=0: exit()
+    logging.info("Starting download:",cmd)
+    if os.system(cmd)!=0: 
+        logging.critical("Error in axel | skipping",url)
+        cleanup(tarName)
+        continue
 
-    tarName = url[url.index('mongo-dump'):url.index('.gz')+3]
     inputDir = tarName[tarName.index('20'):tarName.index('.tar.gz')]
     cmd = 'mkdir '+inputDir+' && tar -C '+inputDir+'/ -xvf '+tarName
-    print("Extracting the compressed file:",cmd)
-    if os.system(cmd)!=0: exit()
+    logging.info("Extracting the compressed file:",cmd)
+    if os.system(cmd)!=0: 
+        logging.critical("Error when extracting file | skipping",url)
+        cleanup(tarName)
+        continue
 
     cmd = 'rm '+tarName
-    print("Removing tar file:",cmd)
-    if os.system(cmd)!=0: exit()
+    logging.info("Removing tar file:",cmd)
+    if os.system(cmd)!=0:
+        logging.critical("Error when removing tar file | skipping",url)
+        continue
 
-
-    print("Deleting `test` db from mongo before we start")
+    logging.info("Deleting `test` db from mongo before we start")
     client.drop_database('test') # Remove the DB from Mongo
-    print()
+    logging.info("")
 
-    print("Importing data from",inputDir+'/dump/github/commits.bson')
+    logging.info("Importing data from",inputDir+'/dump/github/commits.bson')
 
     # Import Mongo Dump
     cmd = 'mongorestore -d test -c mydatabase '+inputDir+'/dump/github/commits.bson'
-    print("Running command:",cmd)
+    logging.info("Running command:",cmd)
     if os.system(cmd)!=0: exit()
 
 
@@ -88,10 +121,10 @@ for url in urls:
             if ('noreply.github' not in email) and email not in people:
                 people[ email ] = committer
         else:
-            print("Error in else", commit)
+            logging.error("Error in else", commit)
             break
         
-    print(num,"commits processed in",time()-start,"seconds")
+    logging.info(num,"commits processed in",time()-start,"seconds")
 
     col = set()
     for v in people.values():
@@ -104,7 +137,7 @@ for url in urls:
             if c not in people[e]:
                 people[e][c] = ''
 
-    print("Storing the results in",'people_'+inputDir+'.csv')
+    logging.info("Storing the results in",'people_'+inputDir+'.csv')
     with open('people_'+inputDir+'.csv', 'w', newline='') as csvfile:
         fieldnames = ['name', 'email', 'html_url','organizations_url', 'node_id', 'login', 'id', 'avatar_url', 'events_url', 'followers_url', 'site_admin', 'received_events_url', 'following_url', 'gists_url', 'starred_url', 'type', 'subscriptions_url', 'repos_url', 'url', 'gravatar_id']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -112,11 +145,11 @@ for url in urls:
         for v in people.values():
             writer.writerow(v)
 
-    print("\nAll done, removing the data from MongoDB\n")
+    logging.info("All done, removing the data from MongoDB")
     client.drop_database('test') # Remove the DB from Mongo
 
     cmd = 'rm -rf '+inputDir
-    print("Removing uncompressed directory:",cmd)
-    if os.system(cmd)!=0: exit()
-
-    print('\n')
+    logging.info("Removing uncompressed directory:",cmd)
+    if os.system(cmd)!=0: 
+        logging.critical("Error when removing uncompressed directory | skipping",url)
+        continue
