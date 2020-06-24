@@ -84,7 +84,7 @@ for url in urls:
     num = 0
     for commit in collection.find():
         num+=1
-        if 'author' in commit['commit']:
+        if 'commit' in commit and 'author' in commit['commit']:
             email = commit['commit']['author']['email']
             name = commit['commit']['author']['name']
 
@@ -99,7 +99,7 @@ for url in urls:
             if ('noreply.github' not in email) and email not in people:
                 people[ email ] = author
 
-        if 'committer' in commit['commit']:
+        if 'commit' in commit and 'committer' in commit['commit']:
             email = commit['commit']['committer']['email']
             name = commit['commit']['committer']['name']
 
@@ -114,7 +114,7 @@ for url in urls:
             if ('noreply.github' not in email) and email not in people:
                 people[ email ] = committer
         else:
-            logging.error("Error in else "+commit)
+            logging.error("Error [in else]")
             break
         
     logging.info(str(num)+" commits processed in "+str(time()-start)+" seconds")
